@@ -117,7 +117,7 @@ export default function PaymentMethod({ orderData, onBack, onConfirmOrder }) {
     // Container diatur oleh App.jsx. Latar belakang putih untuk form.
     <div className="bg-white flex-1 flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 bg-white border-b sticky top-0 z-10">
+      <div className="flex items-center gap-3 p-4 bg-white sticky top-0 z-10">
         <button
           onClick={onBack}
           className="p-1 hover:bg-gray-100 rounded-lg transition"
@@ -136,7 +136,7 @@ export default function PaymentMethod({ orderData, onBack, onConfirmOrder }) {
             <span className="text-gray-600">Jumlah Item:</span>
             <span className="font-bold">{orderData.items.length}</span>
           </div>
-          <div className="flex justify-between items-center pt-2 border-t border-gray-300">
+          <div className="flex justify-between items-center pt-2 border-gray-300">
             <span className="font-bold text-gray-800">Total:</span>
             <span className="font-bold text-lg text-fuchsia-600">
               Rp {orderData.totalPrice.toLocaleString()}
@@ -237,7 +237,7 @@ export default function PaymentMethod({ orderData, onBack, onConfirmOrder }) {
       </div>
 
       {/* Footer */}
-      <div className="bg-white border-t p-4 sticky bottom-0">
+      <div className="bg-white p-4 sticky bottom-0">
         {(selectedMethod === 'cash' || selectedMethod === 'qris') && (
           <button
             onClick={handleConfirm}

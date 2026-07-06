@@ -14,7 +14,7 @@ export default function Sidebar({
     <>
       {/* Overlay */}
       <div
-        className={`fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity ${
+        className={`fixed inset-0 bg-black/25 z-30 transition-opacity ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
@@ -26,7 +26,7 @@ export default function Sidebar({
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="p-4 flex justify-between items-center border-b">
+        <div className="p-4 flex justify-between items-center">
           <h2 className="font-bold text-lg text-fuchsia-600">Menu</h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg">
             <X className="w-6 h-6 text-gray-600" />
@@ -74,7 +74,7 @@ export default function Sidebar({
               className="w-full flex items-center justify-center gap-2 p-3 rounded-lg font-semibold text-white bg-fuchsia-600 hover:bg-fuchsia-700"
             >
               <LogIn className="w-5 h-5" />
-              Login Admin
+              Login
             </button>
           )}
         </div>

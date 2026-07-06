@@ -58,7 +58,7 @@ export default function OrderStatusView({ order, onBack }) {
     <div className="flex flex-col flex-1 bg-slate-50 font-sans">
 
       {/* ── Header ── */}
-      <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
+      <div className="bg-white border-slate-200 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
         <button onClick={onBack} className="p-1.5 hover:bg-slate-100 rounded-lg transition">
           <ArrowLeft className="w-5 h-5 text-slate-700" />
         </button>
@@ -140,7 +140,7 @@ export default function OrderStatusView({ order, onBack }) {
               </li>
             ))}
           </ul>
-          <div className="border-t border-slate-100 mt-3 pt-3 flex justify-between text-sm font-bold">
+          <div className=" border-slate-100 mt-3 pt-3 flex justify-between text-sm font-bold">
             <span className="text-slate-700">Total</span>
             <span className="text-fuchsia-600">Rp {liveOrder.totalPrice.toLocaleString('id-ID')}</span>
           </div>
@@ -165,7 +165,7 @@ export default function OrderStatusView({ order, onBack }) {
       </div>
 
       {/* ── Footer ── */}
-      <div className="bg-white border-t border-slate-200 p-4 sticky bottom-0">
+      <div className="bg-white border-slate-200 p-4 sticky bottom-0">
         {liveOrder.paymentStatus === 'pending' && liveOrder.paymentMethod === 'cash' && (
           <p className="text-xs text-center text-slate-400 mb-2">
             Tunjukkan pesanan ini ke kasir untuk konfirmasi pembayaran
