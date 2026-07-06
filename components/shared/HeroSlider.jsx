@@ -7,9 +7,9 @@ import 'swiper/css/autoplay';
 
 // Anda bisa mengganti data ini dengan gambar dari API atau state management
 const slides = [
-  { id: 1, imageUrl: 'tes slider.png', alt: 'Menu Andalan' },
-  { id: 2, imageUrl: 'tes slider.png', alt: 'Promo Spesial' },
-  { id: 3, imageUrl: 'tes slider.png', alt: 'Diskon Akhir Pekan' },
+  { id: 1, imageUrl: '/tes slider.png', alt: 'Menu Andalan' },
+  { id: 2, imageUrl: '/tes slider.png', alt: 'Promo Spesial' },
+  { id: 3, imageUrl: '/tes slider.png', alt: 'Diskon Akhir Pekan' },
 ];
 
 export default function HeroSlider() {

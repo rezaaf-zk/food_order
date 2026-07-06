@@ -8,24 +8,12 @@ const corsHeaders = {
 }
 
 serve(async (req: Request) => {
-  // Dapatkan URL situs dari environment variables. Ini harus diatur di dashboard Supabase.
-  // Contoh: https://nama-proyek-anda.vercel.app
-  const siteUrl = Deno.env.get('SITE_URL');
-
   // Ambil kunci rahasia Stripe dengan aman
   const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
 
   if (!stripeSecretKey) {
     console.error("Stripe secret key not found in environment variables.");
     return new Response(JSON.stringify({ error: "Server configuration error: Stripe secret key is missing." }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
-  }
-
-  if (!siteUrl) {
-    console.error("SITE_URL not found in environment variables.");
-    return new Response(JSON.stringify({ error: "Server configuration error: SITE_URL is missing." }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });
@@ -40,37 +28,33 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { menuName, price, buyerName, spicinessLevel } = await req.json()
+    // Mengambil data yang sesuai dengan alur Stripe Elements
+    const { amount, orderId, customerName } = await req.json();
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'idr',
-            product_data: {
-              name: `${menuName} (Lvl ${spicinessLevel})`,
-              description: `Pembeli: ${buyerName}`,
-            },
-            unit_amount: price, 
-          },
-          quantity: 1,
-        },
-      ],
-      mode: 'payment',
-      // Jika sukses, lempar balik user ke halaman status aplikasimu
-      success_url: `${siteUrl}/?session_id={CHECKOUT_SESSION_ID}&status=success`,
-      cancel_url: `${siteUrl}/`,
-    })
+    // Membuat PaymentIntent, sama seperti di api/create-payment-intent.js
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amount,
+      currency: 'idr',
+      description: `Pembayaran untuk Pesanan #${orderId}`,
+      metadata: {
+        orderId: orderId,
+        customerName: customerName,
+      },
+      automatic_payment_methods: {
+        enabled: true,
+      },
+    });
 
-    return new Response(JSON.stringify({ id: session.id }), {
+    // Mengirim kembali client_secret ke frontend
+    return new Response(JSON.stringify({ clientSecret: paymentIntent.client_secret }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
-    })
+    });
+
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 500,
     })
   }
 })
