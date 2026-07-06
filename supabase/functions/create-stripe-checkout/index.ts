@@ -1,5 +1,5 @@
-import { serve } from "std/http/server.ts";
-import Stripe from "npm:stripe@14";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@12.0.0?target=deno";
 
 // Define CORS headers for all responses
 const corsHeaders = {
@@ -19,9 +19,9 @@ serve(async (req: Request) => {
     });
   }
 
-  const stripe = new Stripe(stripeSecretKey, {
-    httpClient: Stripe.createFetchHttpClient(),
-  });
+const stripe = new Stripe(stripeSecretKey, {
+  apiVersion: '2023-10-16',
+});
 
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
