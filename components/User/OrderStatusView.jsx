@@ -54,7 +54,8 @@ export default function OrderStatusView({ order, onBack }) {
   const formatTime = (iso) => new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col font-sans">
+    // Container diatur oleh App.jsx. Komponen ini mengisi ruang yang diberikan.
+    <div className="flex flex-col flex-1 bg-slate-50 font-sans">
 
       {/* ── Header ── */}
       <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">

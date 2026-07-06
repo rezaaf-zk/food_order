@@ -114,8 +114,8 @@ export default function PaymentMethod({ orderData, onBack, onConfirmOrder }) {
   };
 
   return (
-    // Container dibuat agar tidak memakan seluruh layar di desktop
-    <div className="bg-white min-h-screen flex flex-col pb-6 md:rounded-xl">
+    // Container diatur oleh App.jsx. Latar belakang putih untuk form.
+    <div className="bg-white flex-1 flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 bg-white border-b sticky top-0 z-10">
         <button
@@ -128,7 +128,7 @@ export default function PaymentMethod({ orderData, onBack, onConfirmOrder }) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* Order Summary */}
         <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
           <h2 className="font-bold text-gray-800 mb-2">Ringkasan Pesanan</h2>
@@ -145,7 +145,7 @@ export default function PaymentMethod({ orderData, onBack, onConfirmOrder }) {
         </div>
 
         {/* Payment Methods */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <h2 className="font-bold text-gray-800">Metode Pembayaran</h2>
           {paymentMethods.map((method) => (
             <button

@@ -19,7 +19,8 @@ export default function MenuList({ onSelectItem, toggleSidebar, cartCount }) {
   );
 
   return (
-    <div className="max-w-md mx-auto bg-gray-50 min-h-screen shadow-lg flex flex-col relative pb-20">
+    // Container utama sekarang diatur oleh App.jsx. Komponen ini hanya mengisi ruang yang diberikan.
+    <div className="flex flex-col flex-1 relative pb-20">
       {/* Header */}
       <div className="flex justify-between items-center p-4 bg-white">
         <button onClick={toggleSidebar} className="p-1 hover:bg-gray-100 rounded-lg transition">

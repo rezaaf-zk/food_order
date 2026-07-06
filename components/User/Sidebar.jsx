@@ -14,7 +14,7 @@ export default function Sidebar({
     <>
       {/* Overlay */}
       <div
-        className={`fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity md:hidden ${
+        className={`fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
@@ -22,7 +22,7 @@ export default function Sidebar({
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-72 bg-white shadow-xl z-40 transform transition-transform md:hidden ${
+        className={`fixed top-0 left-0 h-full w-72 bg-white shadow-xl z-40 transform transition-transform ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

@@ -49,7 +49,8 @@ export default function ItemSelector({ item, category, onBack }) {
   };
 
   return (
-    <div className="max-w-md mx-auto bg-gray-50 min-h-screen flex flex-col">
+    // Container diatur oleh App.jsx. Komponen ini mengisi ruang yang diberikan.
+    <div className="flex flex-col flex-1 bg-gray-50">
       {/* Header */}
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto">

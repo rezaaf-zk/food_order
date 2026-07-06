@@ -166,8 +166,8 @@ function AppContent() {
   return (
     // Latar belakang diubah untuk memberikan tampilan bingkai di desktop
     <div className="min-h-screen bg-gray-100 md:bg-gray-200">
-      {/* Kontainer utama dibuat responsif, lebih lebar di desktop */}
-      <div className="w-full max-w-md mx-auto bg-white md:max-w-lg md:my-4 md:rounded-xl md:shadow-lg">
+      {/* Kontainer utama yang responsif. Mengontrol layout, background, dan bentuk. */}
+      <div className="relative w-full max-w-md mx-auto bg-gray-50 md:max-w-lg md:my-4 md:rounded-xl md:shadow-lg flex flex-col md:min-h-[calc(100vh-2rem)] overflow-hidden">
       {view === 'menu' && user?.userType !== 'admin' && (
         <>
           <MenuList

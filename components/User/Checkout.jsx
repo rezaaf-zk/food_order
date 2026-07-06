@@ -28,7 +28,7 @@ export default function Checkout({ onBack, onProceedToPayment }) {
 
   if (cart.length === 0) {
     return (
-      <div className="max-w-md mx-auto bg-white min-h-screen flex flex-col items-center justify-center pb-6">
+      <div className="flex-1 flex flex-col items-center justify-center p-6 bg-white">
         <div className="text-center">
           <p className="text-gray-600 text-lg mb-4">Keranjang Anda kosong</p>
           <button
@@ -43,9 +43,10 @@ export default function Checkout({ onBack, onProceedToPayment }) {
   }
 
   return (
-    <div className="max-w-md mx-auto bg-white min-h-screen flex flex-col pb-6">
+    // Container utama sekarang diatur oleh App.jsx. Latar belakang putih untuk form.
+    <div className="flex flex-col flex-1 bg-white">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 bg-white border-b sticky top-0 z-10">
+      <div className="flex items-center gap-3 p-4">
         <button
           onClick={onBack}
           className="p-1 hover:bg-gray-100 rounded-lg transition"
@@ -56,9 +57,9 @@ export default function Checkout({ onBack, onProceedToPayment }) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* Order Items */}
-        <div className="bg-white p-4 border-b">
+        <div>
           <h2 className="font-bold text-gray-800 mb-3">Pesanan ({cart.length})</h2>
           <div className="space-y-2">
             {cart.map((item) => (
@@ -95,7 +96,7 @@ export default function Checkout({ onBack, onProceedToPayment }) {
         </div>
 
         {/* Customer Info */}
-        <div className="bg-white p-4 border-b">
+        <div>
           <h2 className="font-bold text-gray-800 mb-3">Informasi Pelanggan</h2>
 
           <div className="mb-3">
@@ -127,7 +128,7 @@ export default function Checkout({ onBack, onProceedToPayment }) {
       </div>
 
       {/* Footer */}
-      <div className="bg-white border-t p-4 sticky bottom-0">
+      <div className="p-4 border-t">
         <div className="flex justify-between items-center mb-3">
           <span className="font-bold text-gray-700">Total Bayar:</span>
           <span className="font-bold text-xl text-fuchsia-600">
