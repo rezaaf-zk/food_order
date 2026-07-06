@@ -48,12 +48,10 @@ function AppContent() {
       const clientSecret = urlParams.get('payment_intent_client_secret');
       const redirectStatus = urlParams.get('redirect_status');
 
-      // Hanya proses jika ada parameter dari Stripe
       if (!clientSecret) {
         return;
       }
 
-      // Ambil data pesanan yang disimpan sebelum redirect
       const savedOrderDataString = localStorage.getItem('stripe_order');
       
       if (redirectStatus === 'succeeded' && savedOrderDataString) {
@@ -62,7 +60,7 @@ function AppContent() {
         const completeOrderData = {
           ...savedOrderData,
           paymentMethod: 'stripe',
-          paymentBank: 'online', // Tipe detail didapat dari PI object, 'online' cukup sebagai default
+          paymentBank: 'online', 
           paymentStatus: 'completed',
           status: 'processing', // Langsung diproses
           paymentIntentId: urlParams.get('payment_intent'),
@@ -72,23 +70,18 @@ function AppContent() {
         handleConfirmOrder(completeOrderData);
 
       } else if (redirectStatus !== 'succeeded') {
-        alert('Pembayaran gagal atau dibatalkan. Silakan coba lagi.');
-        setView('checkout'); // Arahkan kembali ke checkout
+        alert('Pembayaran gagal. Silakan coba lagi.');
+        setView('checkout');
       }
 
-      // Bersihkan localStorage dan URL untuk mencegah eksekusi ganda
       localStorage.removeItem('stripe_order');
       window.history.replaceState({}, document.title, window.location.pathname);
     };
 
     handleStripeRedirect();
-  }, []); // Jalankan sekali saat aplikasi dimuat
+  }, []); 
 
-  /**
-   * Fungsi terpusat untuk memperbarui daftar pesanan.
-   * Ini akan memperbarui state dan localStorage, memicu re-render di seluruh aplikasi.
-   * @param {Array} updatedOrders - Array pesanan yang baru.
-   */
+
   const handleUpdateOrders = (updatedOrders) => {
     setAllOrders(updatedOrders);
     localStorage.setItem('orders', JSON.stringify(updatedOrders));
@@ -120,7 +113,7 @@ function AppContent() {
       createdAt: new Date().toISOString(), // Tambahkan timestamp untuk sorting
     };
     setCurrentOrder(orderWithUser);
-    // Gunakan handler terpusat untuk menambahkan pesanan baru
+
     handleUpdateOrders([...allOrders, orderWithUser]);
     clearCart();
     setView('orderStatus');
@@ -140,7 +133,7 @@ function AppContent() {
     setView('menu');
   };
 
-  // Cari versi terbaru dari `currentOrder` di dalam `allOrders`
+
   const liveOrder = allOrders.find(o => o.orderId === currentOrder?.orderId) || currentOrder;
 
   return (

@@ -1,20 +1,40 @@
 import { serve } from "std/http/server.ts";
 import Stripe from "npm:stripe@14";
 
-const env = (globalThis as any).Deno?.env?.get('sk_test_51TkP8hP0Gl1mWU4osBid2ZpXV9N05ZMUerR7unVgpdi3IKfzwvQV7sojxH9e2QY3quhcQFuFlTTuxb7oSmSiSz1Q00ISrrC3TL')
-  ?? (globalThis as any).process?.env?.STRIPE_SECRET_KEY
-  ?? '';
-
-const stripe = new Stripe(env, {
-  httpClient: Stripe.createFetchHttpClient(),
-});
-
+// Define CORS headers for all responses
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 serve(async (req: Request) => {
+  // Dapatkan URL situs dari environment variables. Ini harus diatur di dashboard Supabase.
+  // Contoh: https://nama-proyek-anda.vercel.app
+  const siteUrl = Deno.env.get('SITE_URL');
+
+  // Ambil kunci rahasia Stripe dengan aman
+  const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+
+  if (!stripeSecretKey) {
+    console.error("Stripe secret key not found in environment variables.");
+    return new Response(JSON.stringify({ error: "Server configuration error: Stripe secret key is missing." }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    });
+  }
+
+  if (!siteUrl) {
+    console.error("SITE_URL not found in environment variables.");
+    return new Response(JSON.stringify({ error: "Server configuration error: SITE_URL is missing." }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    });
+  }
+
+  const stripe = new Stripe(stripeSecretKey, {
+    httpClient: Stripe.createFetchHttpClient(),
+  });
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -22,7 +42,6 @@ serve(async (req: Request) => {
   try {
     const { menuName, price, buyerName, spicinessLevel } = await req.json()
 
-    // Membuat session checkout otomatis di platform Stripe
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -40,8 +59,8 @@ serve(async (req: Request) => {
       ],
       mode: 'payment',
       // Jika sukses, lempar balik user ke halaman status aplikasimu
-      success_url: `http://localhost:5173/?session_id={CHECKOUT_SESSION_ID}&status=success`,
-      cancel_url: `http://localhost:5173/`,
+      success_url: `${siteUrl}/?session_id={CHECKOUT_SESSION_ID}&status=success`,
+      cancel_url: `${siteUrl}/`,
     })
 
     return new Response(JSON.stringify({ id: session.id }), {
