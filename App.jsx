@@ -35,6 +35,17 @@ function AppContent() {
           createdAt: order.createdAt || new Date(0).toISOString() 
         }));
         setAllOrders(parsedOrders);
+
+        // Memuat pesanan aktif saat ini dari localStorage saat aplikasi pertama kali dibuka
+        const activeOrderId = localStorage.getItem('activeOrderId');
+        if (activeOrderId) {
+          const activeOrder = parsedOrders.find(o => o.orderId === activeOrderId && o.status !== 'completed');
+          if (activeOrder) {
+            setCurrentOrder(activeOrder);
+          } else {
+            localStorage.removeItem('activeOrderId'); // Hapus jika pesanan sudah selesai atau tidak ditemukan
+          }
+        }
       } catch (e) {
         console.log('Error loading orders');
       }
@@ -113,6 +124,13 @@ function AppContent() {
       createdAt: new Date().toISOString(), // Tambahkan timestamp untuk sorting
     };
     setCurrentOrder(orderWithUser);
+    // Simpan ID pesanan yang sedang aktif ke localStorage agar tidak hilang saat refresh
+    localStorage.setItem('activeOrderId', orderWithUser.orderId);
+
+    // Kirim notifikasi ke tab lain (misal: dashboard admin) bahwa ada pesanan baru
+    const channel = new BroadcastChannel('order_updates');
+    channel.postMessage({ type: 'NEW_ORDER', payload: orderWithUser });
+    channel.close();
 
     handleUpdateOrders([...allOrders, orderWithUser]);
     clearCart();
@@ -133,11 +151,23 @@ function AppContent() {
     setView('menu');
   };
 
+  const handleFinishViewingOrder = () => {
+    // Jika pesanan sudah selesai, hapus dari status aktif saat pengguna kembali ke menu
+    if (liveOrder?.status === 'completed') {
+      setCurrentOrder(null);
+      localStorage.removeItem('activeOrderId');
+    }
+    setView('menu');
+  };
 
+  // Selalu gunakan data pesanan terbaru dari `allOrders` untuk memastikan statusnya live
   const liveOrder = allOrders.find(o => o.orderId === currentOrder?.orderId) || currentOrder;
 
   return (
-    <div className="min-h-screen bg-gray-200">
+    // Latar belakang diubah untuk memberikan tampilan bingkai di desktop
+    <div className="min-h-screen bg-gray-100 md:bg-gray-200">
+      {/* Kontainer utama dibuat responsif, lebih lebar di desktop */}
+      <div className="w-full max-w-md mx-auto bg-white md:max-w-lg md:my-4 md:rounded-xl md:shadow-lg">
       {view === 'menu' && user?.userType !== 'admin' && (
         <>
           <MenuList
@@ -157,6 +187,7 @@ function AppContent() {
             onLoginClick={() => setIsLoginOpen(true)}
             onLogout={handleLogout}
             allOrders={allOrders}
+            currentOrder={liveOrder} // Kirim pesanan saat ini ke sidebar
           />
         </>
       )}
@@ -186,8 +217,8 @@ function AppContent() {
 
       {view === 'orderStatus' && liveOrder && (
         <OrderStatusView
-          order={liveOrder} // Gunakan `liveOrder` yang selalu up-to-date
-          onBack={() => setView('menu')}
+          order={liveOrder}
+          onBack={handleFinishViewingOrder} // Gunakan fungsi baru untuk membersihkan status
         />
       )}
 
@@ -199,6 +230,7 @@ function AppContent() {
           onUpdateOrders={handleUpdateOrders}
         />
       )}
+      </div>
 
       <AuthMenu
         user={user}

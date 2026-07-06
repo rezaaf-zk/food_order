@@ -114,7 +114,8 @@ export default function PaymentMethod({ orderData, onBack, onConfirmOrder }) {
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white min-h-screen flex flex-col pb-6">
+    // Container dibuat agar tidak memakan seluruh layar di desktop
+    <div className="bg-white min-h-screen flex flex-col pb-6 md:rounded-xl">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 bg-white border-b sticky top-0 z-10">
         <button

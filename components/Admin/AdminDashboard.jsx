@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { LogOut, Trash2, DollarSign, ShoppingCart, Clock, Utensils, CheckCircle } from 'lucide-react';
 
 // Konfigurasi untuk setiap status pesanan
@@ -18,6 +18,26 @@ const getNextStatusText = (status) => {
 };
 
 export default function AdminDashboard({ user, onLogout, orders, onUpdateOrders }) {
+
+  // Efek untuk mendengarkan pesanan baru secara live dari tab lain
+  useEffect(() => {
+    const channel = new BroadcastChannel('order_updates');
+    
+    const handleNewOrder = (event) => {
+      if (event.data && event.data.type === 'NEW_ORDER') {
+        // Tambahkan pesanan baru ke daftar yang ada tanpa perlu refresh
+        onUpdateOrders([event.data.payload, ...orders]);
+      }
+    };
+
+    channel.addEventListener('message', handleNewOrder);
+
+    // Membersihkan listener saat komponen tidak lagi digunakan
+    return () => {
+      channel.removeEventListener('message', handleNewOrder);
+      channel.close();
+    };
+  }, [orders, onUpdateOrders]); // Dependensi agar fungsi selalu mendapat data `orders` terbaru
   
   // Menghitung statistik dasbor, akan dihitung ulang hanya jika 'orders' berubah
   const dashboardStats = useMemo(() => {
