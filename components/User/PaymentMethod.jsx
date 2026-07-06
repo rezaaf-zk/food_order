@@ -35,14 +35,13 @@ export default function PaymentMethod({ orderData, onBack, onConfirmOrder }) {
   ];
 
   const handlePaymentSuccess = (paymentIntent) => {
-    // Dipanggil ketika Stripe mengonfirmasi pembayaran berhasil
     const completeOrderData = {
       ...orderData,
       orderId: orderId,
       paymentMethod: 'stripe',
       paymentBank: paymentIntent.payment_method_details?.type || 'online',
-      paymentStatus: 'completed', // Pembayaran lunas
-      status: 'processing', // Langsung masuk status "Diproses"
+      paymentStatus: 'completed',
+      status: 'processing',
       paymentIntentId: paymentIntent.id, 
     };
     onConfirmOrder(completeOrderData);
@@ -59,11 +58,12 @@ export default function PaymentMethod({ orderData, onBack, onConfirmOrder }) {
     }
 
     setSelectedMethod('stripe');
-    if (clientSecret) return; // Already loaded
+    if (clientSecret) return;
 
     setIsStripeLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/create-payment-intent`, {
+      // PERBAIKAN: Mengubah ujung rute fetch agar sesuai dengan fungsi Supabase Cloud milikmu
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/create-stripe-checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -83,7 +83,7 @@ export default function PaymentMethod({ orderData, onBack, onConfirmOrder }) {
     } catch (error) {
       console.error("Error creating Payment Intent:", error);
       alert(`Tidak dapat memuat metode pembayaran Stripe: ${error.message}`);
-      setSelectedMethod(null); // Batalkan pilihan jika gagal
+      setSelectedMethod(null);
     } finally {
       setIsStripeLoading(false);
     }
@@ -104,7 +104,7 @@ export default function PaymentMethod({ orderData, onBack, onConfirmOrder }) {
         orderId: orderId,
         paymentMethod: selectedMethod,
         paymentBank: null,
-        status: 'waiting', // Status awal "Menunggu" untuk pembayaran manual
+        status: 'waiting',
         paymentStatus: 'pending',
       };
 
@@ -208,7 +208,7 @@ export default function PaymentMethod({ orderData, onBack, onConfirmOrder }) {
           </div>
         )}
 
-        {/* QRIS Info (if QRIS selected) */}
+        {/* QRIS Info */}
         {selectedMethod === 'qris' && (
           <div className="bg-green-50 p-4 rounded-xl border border-green-200 text-center space-y-3">
             <h3 className="font-bold text-green-900">Scan untuk Membayar</h3>
@@ -221,11 +221,10 @@ export default function PaymentMethod({ orderData, onBack, onConfirmOrder }) {
                 Rp {orderData.totalPrice.toLocaleString('id-ID')}
               </p>
             </div>
-            
           </div>
         )}
 
-        {/* Cash Info (if cash selected) */}
+        {/* Cash Info */}
         {selectedMethod === 'cash' && (
           <div className="bg-amber-50 p-4 rounded-xl border border-amber-200">
             <h3 className="font-bold text-amber-900 mb-2">Pembayaran di Kasir</h3>
@@ -238,7 +237,6 @@ export default function PaymentMethod({ orderData, onBack, onConfirmOrder }) {
 
       {/* Footer */}
       <div className="bg-white border-t p-4 sticky bottom-0">
-        {/* Tombol konfirmasi hanya untuk metode non-Stripe */}
         {(selectedMethod === 'cash' || selectedMethod === 'qris') && (
           <button
             onClick={handleConfirm}
