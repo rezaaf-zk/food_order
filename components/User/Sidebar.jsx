@@ -30,9 +30,8 @@ export default function Sidebar({
         <div className="p-5 flex justify-between items-center border-b border-gray-100">
           <div>
             <h2 className="font-extrabold text-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 bg-clip-text text-transparent">
-              FoodOrder
+              HoliFood
             </h2>
-            <p className="text-xs text-gray-400 mt-0.5">Navigasi Rasa</p>
           </div>
           <button 
             onClick={onClose} 

@@ -28,7 +28,6 @@ const stripe = new Stripe(stripeSecretKey, {
   }
 
   try {
-    // Mengambil data yang sesuai dengan alur Stripe Elements
     const { amount, orderId, customerName } = await req.json();
 
     // Membuat PaymentIntent, sama seperti di api/create-payment-intent.js
