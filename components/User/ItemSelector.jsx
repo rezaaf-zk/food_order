@@ -1,18 +1,21 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { ArrowLeft, Minus, Plus } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, FileEdit } from 'lucide-react';
 import { CartContext } from '../../context/CartContext';
+import { useBranch } from '../../context/BranchContext';
 import { spiceLevels } from '../../data/menuData';
 
 export default function ItemSelector({ item, category, onBack }) {
   const { addToCart } = useContext(CartContext);
-  const [quantity, setQuantity] = useState(1);
-  const [selectedLevels, setSelectedLevels] = useState(Array(1).fill(null));
+  const { selectedBranch } = useBranch();
 
-  // Efek untuk menyinkronkan jumlah pilihan level dengan kuantitas
+  const [quantity, setQuantity] = useState(1);
+  const [selectedLevels, setSelectedLevels] = useState(Array(1).fill(1)); // default level 1
+  const [itemNote, setItemNote] = useState('');
+
+  // Sinkronkan jumlah pilihan level dengan kuantitas
   useEffect(() => {
-    setSelectedLevels(currentLevels => {
-      const newLevels = Array(quantity).fill(null);
-      // Pertahankan level yang sudah dipilih jika memungkinkan
+    setSelectedLevels((currentLevels) => {
+      const newLevels = Array(quantity).fill(1);
       for (let i = 0; i < Math.min(currentLevels.length, quantity); i++) {
         newLevels[i] = currentLevels[i];
       }
@@ -21,120 +24,133 @@ export default function ItemSelector({ item, category, onBack }) {
   }, [quantity]);
 
   const handleSelectLevel = (index, level) => {
-    // Buat salinan array untuk diubah
     const newLevels = [...selectedLevels];
     newLevels[index] = level;
     setSelectedLevels(newLevels);
   };
 
   const handleAddToCart = () => {
-    const allLevelsSelected = item.hasLevel
-      ? selectedLevels.every((level) => level !== null) // Cek semua level yang sesuai kuantitas
-      : true;
+    const hasSpiciness = item.hasLevel || item.has_spiciness_level;
+    const cleanNote = itemNote.trim();
 
-    if (!allLevelsSelected) {
-      alert('Silakan pilih level terlebih dahulu!');
-      return;
-    }
-
-    if (item.hasLevel) {
-      selectedLevels.forEach((level) => { // Tambahkan setiap pesanan dengan levelnya
-        addToCart(item, 1, level, category);
+    if (hasSpiciness) {
+      selectedLevels.forEach((level) => {
+        addToCart(item, 1, level, category, selectedBranch?.id, cleanNote);
       });
     } else {
-      addToCart(item, quantity, null, category);
+      addToCart(item, quantity, null, category, selectedBranch?.id, cleanNote);
     }
 
     onBack();
   };
 
+  const hasSpiciness = item.hasLevel || item.has_spiciness_level;
+  const availableLevels = spiceLevels || [1, 2, 3, 4, 5, 6, 7, 8];
+
   return (
-    // Container diatur oleh App.jsx. Komponen ini mengisi ruang yang diberikan.
-    <div className="flex flex-col flex-1 bg-gray-50">
-      {/* Header */}
+    <div className="flex flex-col flex-1 bg-gray-50 font-sans">
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="relative h-64 bg-gray-100">
-          <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+      <div className="flex-1 overflow-y-auto pb-6">
+        {/* Product Hero Image */}
+        <div className="relative h-60 md:h-64 bg-gray-100">
+          <img
+            src={item.image}
+            alt={item.name}
+            className="w-full h-full object-cover"
+          />
           <button
             onClick={onBack}
-            className="absolute top-4 left-4 bg-white/80 p-2 rounded-full shadow backdrop-blur-sm hover:bg-white"
+            className="absolute top-4 left-4 bg-white/90 p-2.5 rounded-full shadow-md backdrop-blur-sm hover:bg-white active:scale-95 transition text-gray-800"
+            title="Kembali ke menu"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-800" />
+            <ArrowLeft className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Item Info */}
-        <div className="p-4 bg-white shadow-sm">
-          <h2 className="text-xl font-bold text-gray-800">{item.name}</h2>
-          <p className="text-fuchsia-600 font-bold mt-1">Rp {item.price.toLocaleString()}</p>
-          <p className="text-gray-500 text-sm mt-2">{item.description}</p>
+        {/* Product Details Header */}
+        <div className="p-4 bg-white shadow-xs border-b border-gray-100">
+          <h2 className="text-xl font-extrabold text-gray-900 leading-snug">
+            {item.name}
+          </h2>
+          <p className="text-fuchsia-700 font-black text-lg mt-1">
+            Rp {item.price.toLocaleString('id-ID')}
+          </p>
+          <p className="text-gray-500 text-xs mt-1.5 leading-relaxed">
+            {item.description}
+          </p>
         </div>
 
-        {/* Quantity Selection (untuk non-level items atau basis) */}
-        {!item.hasLevel ? (
-          <div className="p-4 bg-white mt-2">
-            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
-              Jumlah
+        {/* Quantity Selection for Non-Spicy items */}
+        {!hasSpiciness ? (
+          <div className="p-4 bg-white mt-2.5 rounded-2xl mx-4 border border-gray-100 shadow-xs">
+            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2.5">
+              Jumlah Porsi
             </label>
-            <div className="flex items-center gap-3 justify-center">
+            <div className="flex items-center gap-4 justify-center py-1.5">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="bg-gray-200 hover:bg-gray-300 p-2 rounded-lg transition"
+                className="bg-gray-100 hover:bg-gray-200 p-2.5 rounded-xl transition active:scale-95 text-gray-700"
               >
                 <Minus className="w-4 h-4" />
               </button>
-              <span className="text-2xl font-bold w-8 text-center">{quantity}</span>
+              <span className="text-2xl font-extrabold w-12 text-center text-gray-900">
+                {quantity}
+              </span>
               <button
                 onClick={() => setQuantity(quantity + 1)}
-                className="bg-fuchsia-500 hover:bg-fuchsia-600 text-white p-2 rounded-lg transition"
+                className="bg-fuchsia-600 hover:bg-fuchsia-700 text-white p-2.5 rounded-xl transition active:scale-95 shadow-md shadow-fuchsia-200"
               >
                 <Plus className="w-4 h-4" />
               </button>
             </div>
           </div>
         ) : (
-          /* Level Selection untuk makanan */
-          <div className="p-4 flex-1">
-            <div className="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm">
+          /* Spicy level options per quantity */
+          <div className="p-4 space-y-3">
+            <div className="flex justify-between items-center bg-white p-3 rounded-2xl shadow-xs border border-gray-100">
               <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                Jumlah Pesanan
+                Jumlah Porsi
               </label>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="bg-gray-200 hover:bg-gray-300 p-1 rounded transition"
+                  className="bg-gray-100 hover:bg-gray-200 p-1.5 rounded-lg transition active:scale-95 text-gray-700"
                 >
-                  <Minus className="w-3 h-3" />
+                  <Minus className="w-3.5 h-3.5" />
                 </button>
-                <span className="font-bold w-6 text-center">{quantity}</span>
+                <span className="font-extrabold w-6 text-center text-sm text-gray-900">
+                  {quantity}
+                </span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
-                  className="bg-fuchsia-500 hover:bg-fuchsia-600 text-white p-1 rounded transition"
+                  className="bg-fuchsia-600 hover:bg-fuchsia-700 text-white p-1.5 rounded-lg transition active:scale-95 shadow-xs"
                 >
-                  <Plus className="w-3 h-3" />
+                  <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-2.5">
               {Array.from({ length: quantity }).map((_, idx) => (
-                <div key={idx} className="bg-white p-4 rounded-xl shadow-sm">
-                  <label className="text-sm font-semibold text-gray-700 mb-3 block">
-                    Pesanan {idx + 1}: Pilih Level Pedas
+                <div
+                  key={idx}
+                  className="bg-white p-3.5 rounded-2xl shadow-xs border border-gray-100"
+                >
+                  <label className="text-xs font-bold text-gray-800 mb-2 block">
+                    Porsi {idx + 1}: Pilih Level Pedas
                   </label>
                   <div className="grid grid-cols-4 gap-2">
-                    {spiceLevels.map((lvl) => (
+                    {availableLevels.map((lvl) => (
                       <button
                         key={lvl}
                         onClick={() => handleSelectLevel(idx, lvl)}
-                        className={`py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 transform active:scale-95 ${
+                        className={`py-2 rounded-xl font-bold text-xs transition-all duration-150 transform active:scale-95 ${
                           selectedLevels[idx] === lvl
-                            ? 'bg-fuchsia-600 text-white shadow-lg'
-                            : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                            ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white shadow-md shadow-fuchsia-200'
+                            : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-100'
                         }`}
                       >
-                        {lvl}
+                        Lvl {lvl}
                       </button>
                     ))}
                   </div>
@@ -143,15 +159,36 @@ export default function ItemSelector({ item, category, onBack }) {
             </div>
           </div>
         )}
+
+        {/* Universal Item Order Note Input */}
+        <div className="p-4 bg-white mt-2.5 rounded-2xl mx-4 border border-gray-100 shadow-xs space-y-2">
+          <div className="flex justify-between items-center">
+            <label className="text-xs font-bold uppercase tracking-wider text-gray-600 flex items-center gap-1.5">
+              <FileEdit className="w-3.5 h-3.5 text-fuchsia-600" />
+              <span>Catatan untuk Menu Ini (Opsional)</span>
+            </label>
+            <span className="text-[10px] text-gray-400 font-mono">
+              {itemNote.length}/250
+            </span>
+          </div>
+
+          <textarea
+            value={itemNote}
+            onChange={(e) => setItemNote(e.target.value.slice(0, 250))}
+            placeholder="Contoh: tidak pakai sambal, saus dipisah, es sedikit, jangan terlalu manis..."
+            rows={2}
+            className="w-full border border-gray-200 rounded-xl p-2.5 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 resize-none transition-all placeholder:text-gray-400"
+          />
+        </div>
       </div>
 
-      {/* CTA Button */}
-      <div className="p-4 bg-white/80 backdrop-blur-sm border-t border-gray-100">
+      {/* Sticky Bottom CTA */}
+      <div className="p-4 bg-white border-t border-gray-100 sticky bottom-0 z-10 shadow-lg">
         <button
           onClick={handleAddToCart}
-          className="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold py-3.5 rounded-full shadow-lg transition transform active:scale-95"
+          className="w-full bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white font-extrabold py-3.5 rounded-full shadow-lg shadow-fuchsia-200 transition transform active:scale-[0.98] text-sm"
         >
-          Tambah ke Keranjang
+          Tambah ke Keranjang • Rp {(item.price * quantity).toLocaleString('id-ID')}
         </button>
       </div>
     </div>

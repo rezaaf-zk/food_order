@@ -8,7 +8,10 @@ import OrderStatusView from './components/User/OrderStatusView';
 import AdminDashboard from './components/Admin/AdminDashboard';
 import AuthMenu from './components/shared/AuthMenu';
 import Sidebar from './components/User/Sidebar';
+import BranchSelectorModal from './components/Branch/BranchSelectorModal';
 import { CartProvider, CartContext } from './context/CartContext';
+import { BranchProvider } from './context/BranchContext';
+import { fetchOrders } from './services/orderService';
 
 function AppContent() {
   const [view, setView] = useState('menu');
@@ -21,81 +24,73 @@ function AppContent() {
   const [orderData, setOrderData] = useState(null);
   const [allOrders, setAllOrders] = useState([]);
 
-  const { cart, getTotalPrice, clearCart } = React.useContext(CartContext);
+  const { cart, clearCart } = React.useContext(CartContext);
 
+  // Load orders on initialization
   useEffect(() => {
-    const saved = localStorage.getItem('orders');
-    if (saved) {
+    async function loadOrders() {
       try {
-        let parsedOrders = JSON.parse(saved);
-        // Migrasi data lama: pastikan semua pesanan memiliki `createdAt` untuk sorting
-        // Pesanan tanpa tanggal akan dianggap paling lama.
-        parsedOrders = parsedOrders.map(order => ({
-          ...order,
-          createdAt: order.createdAt || new Date(0).toISOString() 
-        }));
-        setAllOrders(parsedOrders);
+        const orders = await fetchOrders();
+        setAllOrders(orders);
 
-        // Memuat pesanan aktif saat ini dari localStorage saat aplikasi pertama kali dibuka
         const activeOrderId = localStorage.getItem('activeOrderId');
         if (activeOrderId) {
-          const activeOrder = parsedOrders.find(o => o.orderId === activeOrderId && o.status !== 'completed');
+          const activeOrder = orders.find(
+            (o) =>
+              (o.orderId === activeOrderId || o.orderNumber === activeOrderId) &&
+              o.status !== 'completed'
+          );
           if (activeOrder) {
             setCurrentOrder(activeOrder);
           } else {
-            localStorage.removeItem('activeOrderId'); // Hapus jika pesanan sudah selesai atau tidak ditemukan
+            localStorage.removeItem('activeOrderId');
           }
         }
       } catch (e) {
-        console.log('Error loading orders');
+        console.warn('Error initial loading orders:', e);
       }
     }
+
+    loadOrders();
   }, []);
 
-  // Efek untuk menangani redirect dari Stripe setelah pembayaran
+  // Handle Midtrans redirect / return URL parameters (if 3DS or external redirect occurs)
   useEffect(() => {
-    const handleStripeRedirect = () => {
+    const handlePaymentRedirect = () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const clientSecret = urlParams.get('payment_intent_client_secret');
-      const redirectStatus = urlParams.get('redirect_status');
+      const orderId = urlParams.get('order_id');
+      const transactionStatus = urlParams.get('transaction_status') || urlParams.get('status_code');
 
-      if (!clientSecret) {
-        return;
+      if (!orderId) return;
+
+      if (transactionStatus === 'settlement' || transactionStatus === 'capture' || transactionStatus === '200') {
+        const savedOrderDataString = localStorage.getItem('pending_order_data');
+        if (savedOrderDataString) {
+          try {
+            const savedOrderData = JSON.parse(savedOrderDataString);
+            const completeOrderData = {
+              ...savedOrderData,
+              paymentMethod: 'midtrans',
+              paymentStatus: 'paid',
+              status: 'confirmed'
+            };
+            handleConfirmOrder(completeOrderData);
+            localStorage.removeItem('pending_order_data');
+          } catch (e) {}
+        }
       }
 
-      const savedOrderDataString = localStorage.getItem('stripe_order');
-      
-      if (redirectStatus === 'succeeded' && savedOrderDataString) {
-        const savedOrderData = JSON.parse(savedOrderDataString);
-
-        const completeOrderData = {
-          ...savedOrderData,
-          paymentMethod: 'stripe',
-          paymentBank: 'online', 
-          paymentStatus: 'completed',
-          status: 'processing', // Langsung diproses
-          paymentIntentId: urlParams.get('payment_intent'),
-        };
-
-        // Panggil fungsi konfirmasi untuk membuat pesanan dan menampilkan status
-        handleConfirmOrder(completeOrderData);
-
-      } else if (redirectStatus !== 'succeeded') {
-        alert('Pembayaran gagal. Silakan coba lagi.');
-        setView('checkout');
-      }
-
-      localStorage.removeItem('stripe_order');
       window.history.replaceState({}, document.title, window.location.pathname);
     };
 
-    handleStripeRedirect();
-  }, []); 
-
+    handlePaymentRedirect();
+  }, []);
 
   const handleUpdateOrders = (updatedOrders) => {
     setAllOrders(updatedOrders);
-    localStorage.setItem('orders', JSON.stringify(updatedOrders));
+    try {
+      localStorage.setItem('orders', JSON.stringify(updatedOrders));
+    } catch (e) {}
   };
 
   const handleSelectItem = (item, category) => {
@@ -112,8 +107,8 @@ function AppContent() {
     setView('checkout');
   };
 
-  const handleProceedToPayment = (orderData) => {
-    setOrderData(orderData);
+  const handleProceedToPayment = (data) => {
+    setOrderData(data);
     setView('payment');
   };
 
@@ -121,25 +116,25 @@ function AppContent() {
     const orderWithUser = {
       ...completeOrderData,
       userId: user?.userId || null,
-      createdAt: new Date().toISOString(), // Tambahkan timestamp untuk sorting
+      createdAt: completeOrderData.createdAt || new Date().toISOString()
     };
     setCurrentOrder(orderWithUser);
-    // Simpan ID pesanan yang sedang aktif ke localStorage agar tidak hilang saat refresh
-    localStorage.setItem('activeOrderId', orderWithUser.orderId);
+    localStorage.setItem('activeOrderId', orderWithUser.orderId || orderWithUser.orderNumber);
 
-    // Kirim notifikasi ke tab lain (misal: dashboard admin) bahwa ada pesanan baru
-    const channel = new BroadcastChannel('order_updates');
-    channel.postMessage({ type: 'NEW_ORDER', payload: orderWithUser });
-    channel.close();
+    try {
+      const channel = new BroadcastChannel('order_updates');
+      channel.postMessage({ type: 'NEW_ORDER', payload: orderWithUser });
+      channel.close();
+    } catch (e) {}
 
-    handleUpdateOrders([...allOrders, orderWithUser]);
+    handleUpdateOrders([orderWithUser, ...allOrders]);
     clearCart();
     setView('orderStatus');
   };
 
   const handleLoginSuccess = (userData) => {
     setUser(userData);
-    if (userData.userType === 'admin') {
+    if (userData.userType === 'admin' || userData.userType === 'super_admin' || userData.userType === 'branch_manager') {
       setView('adminDashboard');
     } else {
       setView('menu');
@@ -152,7 +147,6 @@ function AppContent() {
   };
 
   const handleFinishViewingOrder = () => {
-    // Jika pesanan sudah selesai, hapus dari status aktif saat pengguna kembali ke menu
     if (liveOrder?.status === 'completed') {
       setCurrentOrder(null);
       localStorage.removeItem('activeOrderId');
@@ -160,78 +154,86 @@ function AppContent() {
     setView('menu');
   };
 
-  // Selalu gunakan data pesanan terbaru dari `allOrders` untuk memastikan statusnya live
-  const liveOrder = allOrders.find(o => o.orderId === currentOrder?.orderId) || currentOrder;
+  const liveOrder =
+    allOrders.find(
+      (o) =>
+        o.orderId === currentOrder?.orderId ||
+        o.orderNumber === currentOrder?.orderNumber ||
+        o.orderId === currentOrder?.orderNumber
+    ) || currentOrder;
 
   return (
-    // Latar belakang diubah untuk memberikan tampilan bingkai di desktop
-    <div className="min-h-screen bg-gray-100 md:bg-gray-200">
-      {/* Kontainer utama yang responsif. Mengontrol layout, background, dan bentuk. */}
-      <div className="relative w-full max-w-md mx-auto bg-gray-50 md:max-w-lg md:my-4 md:rounded-xl md:shadow-lg flex flex-col md:min-h-[calc(100vh-2rem)] overflow-hidden">
-      {view === 'menu' && user?.userType !== 'admin' && (
-        <>
-          <MenuList
-            onSelectItem={handleSelectItem}
-            toggleSidebar={() => setIsSidebarOpen(true)}
-            cartCount={cart.length}
-          />
-          <Cart onCheckout={handleCheckout} />
-          <Sidebar
-            isOpen={isSidebarOpen}
-            onClose={() => setIsSidebarOpen(false)}
-            onViewChange={(targetView) => {
-              setView(targetView);
-              setIsSidebarOpen(false);
-            }}
-            user={user}
-            onLoginClick={() => setIsLoginOpen(true)}
-            onLogout={handleLogout}
-            allOrders={allOrders}
-            currentOrder={liveOrder} // Kirim pesanan saat ini ke sidebar
-          />
-        </>
-      )}
-
-      {view === 'itemSelector' && selectedItem && (
-        <ItemSelector
-          item={selectedItem}
-          category={selectedCategory}
-          onBack={() => setView('menu')}
-        />
-      )}
-
-      {view === 'checkout' && (
-        <Checkout
-          onBack={() => setView('menu')}
-          onProceedToPayment={handleProceedToPayment}
-        />
-      )}
-
-      {view === 'payment' && orderData && (
-        <PaymentMethod
-          orderData={orderData}
-          onBack={() => setView('checkout')}
-          onConfirmOrder={handleConfirmOrder}
-        />
-      )}
-
-      {view === 'orderStatus' && liveOrder && (
-        <OrderStatusView
-          order={liveOrder}
-          onBack={handleFinishViewingOrder} // Gunakan fungsi baru untuk membersihkan status
-        />
-      )}
-
-      {view === 'adminDashboard' && user?.userType === 'admin' && (
+    <div className="min-h-screen bg-slate-100 md:bg-slate-200 flex flex-col justify-start">
+      {/* Container wrapper: full width for Admin, mobile-first card for Customer */}
+      {view === 'adminDashboard' && user?.userType === 'admin' ? (
         <AdminDashboard
           user={user}
           onLogout={handleLogout}
           orders={allOrders}
           onUpdateOrders={handleUpdateOrders}
         />
-      )}
-      </div>
+      ) : (
+        <div className="relative w-full max-w-md mx-auto bg-gray-50 md:max-w-lg md:my-4 md:rounded-2xl md:shadow-xl flex flex-col md:min-h-[calc(100vh-2rem)] overflow-hidden border border-slate-200/60">
+          {view === 'menu' && (
+            <>
+              <MenuList
+                onSelectItem={handleSelectItem}
+                toggleSidebar={() => setIsSidebarOpen(true)}
+                cartCount={cart.length}
+              />
+              <Cart onCheckout={handleCheckout} />
+              <Sidebar
+                isOpen={isSidebarOpen}
+                onClose={() => setIsSidebarOpen(false)}
+                onViewChange={(targetView) => {
+                  setView(targetView);
+                  setIsSidebarOpen(false);
+                }}
+                user={user}
+                onLoginClick={() => setIsLoginOpen(true)}
+                onLogout={handleLogout}
+                allOrders={allOrders}
+                currentOrder={liveOrder}
+              />
+            </>
+          )}
 
+          {view === 'itemSelector' && selectedItem && (
+            <ItemSelector
+              item={selectedItem}
+              category={selectedCategory}
+              onBack={() => setView('menu')}
+            />
+          )}
+
+          {view === 'checkout' && (
+            <Checkout
+              onBack={() => setView('menu')}
+              onProceedToPayment={handleProceedToPayment}
+            />
+          )}
+
+          {view === 'payment' && orderData && (
+            <PaymentMethod
+              orderData={orderData}
+              onBack={() => setView('checkout')}
+              onConfirmOrder={handleConfirmOrder}
+            />
+          )}
+
+          {view === 'orderStatus' && liveOrder && (
+            <OrderStatusView
+              order={liveOrder}
+              onBack={handleFinishViewingOrder}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Global Branch Selector Modal */}
+      <BranchSelectorModal />
+
+      {/* Auth Modal */}
       <AuthMenu
         user={user}
         onLoginSuccess={handleLoginSuccess}
@@ -245,8 +247,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <CartProvider>
-      <AppContent />
-    </CartProvider>
+    <BranchProvider>
+      <CartProvider>
+        <AppContent />
+      </CartProvider>
+    </BranchProvider>
   );
 }

@@ -1,9 +1,0 @@
-{
-  "compilerOptions": {
-    "allowJs": true,
-    "lib": ["deno.window", "deno.ns"]
-  },
-  "imports": {
-    "std/": "https://deno.land/std@0.192.0/"
-  }
-}
