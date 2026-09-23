@@ -171,6 +171,27 @@ export async function fetchOrders(branchId = null) {
   return [];
 }
 
+export async function deleteOrder(orderId) {
+  try {
+    let query;
+    if (typeof orderId === 'number' || (!isNaN(Number(orderId)) && !String(orderId).startsWith('ORD-'))) {
+      query = supabase.from('orders').delete().eq('id', Number(orderId));
+    } else {
+      query = supabase.from('orders').delete().eq('order id', String(orderId));
+    }
+
+    const { error } = await query;
+    if (error) {
+      console.warn('Delete order from Supabase failed:', error.message);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err) {
+    console.warn('Error in deleteOrder:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 export async function updateOrderStatus(orderId, newStatus, newPaymentStatus = null) {
   try {
     const updatePayload = { status: newStatus };

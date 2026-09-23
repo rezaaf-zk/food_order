@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Clock, CheckCircle, ChefHat, Bell, Store, User, MapPin } from 'lucide-react';
 
+import { supabase } from '../../supabaseClient';
+
 const statusFlow = [
   { key: 'waiting', label: 'Pesanan Diterima', icon: Clock },
   { key: 'processing', label: 'Sedang Dimasak', icon: ChefHat },
@@ -18,21 +20,46 @@ const paymentMethodLabel = {
 export default function OrderStatusView({ order, onBack }) {
   const [liveOrder, setLiveOrder] = useState(order);
 
-  // Sync status if localStorage orders update
+  // Sync if prop order changes from parent (e.g. App.jsx 5s poll)
   useEffect(() => {
-    const handler = (e) => {
-      if (e.key !== 'orders') return;
+    if (order) {
+      setLiveOrder((prev) => ({
+        ...prev,
+        ...order,
+        status: order.status || prev?.status,
+        paymentStatus: order.paymentStatus || prev?.paymentStatus
+      }));
+    }
+  }, [order]);
+
+  // Realtime live status tracking directly from Supabase every 2 seconds
+  useEffect(() => {
+    const orderTargetId = order?.orderId || order?.orderNumber;
+    if (!orderTargetId) return;
+
+    const checkLatestStatus = async () => {
       try {
-        const all = JSON.parse(e.newValue || '[]');
-        const updated = all.find(
-          (o) => o.orderId === order.orderId || o.orderNumber === order.orderNumber
-        );
-        if (updated) setLiveOrder(updated);
-      } catch {}
+        let query;
+        if (typeof orderTargetId === 'number' || (!isNaN(Number(orderTargetId)) && !String(orderTargetId).startsWith('ORD-'))) {
+          query = supabase.from('orders').select('*').eq('id', Number(orderTargetId)).maybeSingle();
+        } else {
+          query = supabase.from('orders').select('*').eq('order id', String(orderTargetId)).maybeSingle();
+        }
+
+        const { data, error } = await query;
+        if (!error && data) {
+          setLiveOrder((prev) => ({
+            ...prev,
+            status: data.status || prev?.status,
+            paymentStatus: data.payment_status || data['payment status'] || prev?.paymentStatus
+          }));
+        }
+      } catch (e) {}
     };
 
-    window.addEventListener('storage', handler);
-    return () => window.removeEventListener('storage', handler);
+    checkLatestStatus();
+    const intervalId = setInterval(checkLatestStatus, 2000);
+    return () => clearInterval(intervalId);
   }, [order?.orderId, order?.orderNumber]);
 
   const currentIdx = Math.max(

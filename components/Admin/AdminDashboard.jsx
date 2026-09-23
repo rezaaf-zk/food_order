@@ -33,7 +33,7 @@ import {
   fetchAnalyticsData,
   exportSalesReportToCSV
 } from '../../services/analyticsService';
-import { updateOrderStatus } from '../../services/orderService';
+import { updateOrderStatus, deleteOrder } from '../../services/orderService';
 
 const statusConfig = {
   waiting: { text: 'Menunggu', color: 'bg-yellow-100 text-yellow-800', next: 'processing' },
@@ -184,12 +184,13 @@ export default function AdminDashboard({ user, onLogout, orders, onUpdateOrders 
     await updateOrderStatus(orderId, 'processing', 'paid');
   };
 
-  const handleDeleteOrder = (orderIdToDelete) => {
+  const handleDeleteOrder = async (orderIdToDelete) => {
     if (window.confirm('Hapus pesanan ini dari antrean?')) {
       const updated = orders.filter(
         (o) => o.orderId !== orderIdToDelete && o.orderNumber !== orderIdToDelete
       );
       onUpdateOrders(updated);
+      await deleteOrder(orderIdToDelete);
     }
   };
 
