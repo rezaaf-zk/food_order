@@ -91,17 +91,15 @@ export async function createOrder(orderPayload) {
     console.warn('RPC failed, trying direct Supabase table insert fallback:', err.message);
   }
 
-  // 2. Direct Supabase insert fallback if RPC failed
+  // 2. Direct Supabase insert fallback
   try {
+    // Try Variant A: Rich Schema (customer_name, total, etc.)
     const { data: directOrder, error: directErr } = await supabase
       .from('orders')
       .insert({
         order_number: orderNumber,
-        branch_id: isUuid(branchId) ? branchId : 'a0000000-0000-0000-0000-000000000001',
+        branch_id: isUuid(branchId) ? branchId : null,
         subtotal: totalPrice,
-        discount: 0,
-        tax: 0,
-        delivery_fee: 0,
         total: totalPrice,
         payment_status: paymentStatus,
         order_status: orderStatus,
@@ -132,11 +130,11 @@ export async function createOrder(orderPayload) {
       return {
         success: true,
         orderId: directOrder.id,
-        orderNumber: directOrder.order_number,
+        orderNumber: directOrder.order_number || orderNumber,
         order: {
           ...directOrder,
           orderId: directOrder.id,
-          orderNumber: directOrder.order_number,
+          orderNumber: directOrder.order_number || orderNumber,
           totalPrice: Number(directOrder.total),
           items,
           customerName,
@@ -146,13 +144,52 @@ export async function createOrder(orderPayload) {
         }
       };
     } else if (directErr) {
-      console.warn('Direct Supabase insert failed:', directErr.message);
+      // If error is column mismatch (e.g. table has buyer_name / menu_name), try Variant B (Simple Schema)
+      console.warn('Rich schema insert failed, trying simple schema fallback:', directErr.message);
+
+      const menuNames = items.map((i) => `${i.name} (${i.quantity}x)`).join(', ');
+      const highestLevel = items.find((i) => i.level)?.level || 0;
+
+      const { data: simpleOrder, error: simpleErr } = await supabase
+        .from('orders')
+        .insert({
+          buyer_name: customerName,
+          menu_name: menuNames,
+          spiciness_level: highestLevel ? String(highestLevel) : null,
+          total_price: totalPrice,
+          payment_method: paymentMethod,
+          order_status: orderStatus
+        })
+        .select()
+        .single();
+
+      if (!simpleErr && simpleOrder) {
+        return {
+          success: true,
+          orderId: simpleOrder.id || orderNumber,
+          orderNumber: orderNumber,
+          order: {
+            ...simpleOrder,
+            id: simpleOrder.id,
+            orderId: simpleOrder.id || orderNumber,
+            orderNumber: orderNumber,
+            totalPrice: Number(simpleOrder.total_price || totalPrice),
+            items,
+            customerName: simpleOrder.buyer_name || customerName,
+            status: simpleOrder.order_status || orderStatus,
+            paymentStatus: paymentStatus,
+            createdAt: simpleOrder.created_at || new Date().toISOString()
+          }
+        };
+      } else if (simpleErr) {
+        console.error('All Supabase insert attempts failed:', simpleErr.message);
+      }
     }
   } catch (err) {
     console.warn('Direct insert fallback failed:', err.message);
   }
 
-  // 3. Last-resort fallback: local persistence
+  // 3. Last-resort fallback: local persistence (only when offline or RLS blocks)
   const fallbackOrder = {
     id: `ord_${Date.now()}`,
     orderId: orderNumber,
@@ -190,53 +227,59 @@ export async function fetchOrders(branchId = null) {
   try {
     let query = supabase
       .from('orders')
-      .select(`
-        *,
-        branches (
-          id,
-          name,
-          code
-        ),
-        order_items (
-          id,
-          product_name_snapshot,
-          unit_price,
-          quantity,
-          subtotal,
-          spiciness_level,
-          notes
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
-
-    if (branchId) {
-      query = query.eq('branch_id', branchId);
-    }
 
     const { data, error } = await query;
 
     if (!error && data && data.length > 0) {
-      return data.map((o) => ({
-        id: o.id,
-        orderId: o.order_number || o.id,
-        orderNumber: o.order_number || o.id,
-        branchId: o.branch_id,
-        branchName: o.branches?.name || 'Cabang',
-        customerName: o.customer_name,
-        customerPhone: o.customer_phone,
-        notes: o.customer_note,
-        totalPrice: Number(o.total),
-        paymentMethod: o.payment_method,
-        paymentStatus: o.payment_status,
-        status: o.order_status,
-        createdAt: o.created_at,
-        items: (o.order_items || []).map((oi) => ({
-          name: oi.product_name_snapshot,
-          price: Number(oi.unit_price),
-          quantity: oi.quantity,
-          level: oi.spiciness_level
-        }))
-      }));
+      return data.map((o) => {
+        const customerName = o.customer_name || o.buyer_name || 'Pelanggan';
+        const totalPrice = Number(o.total || o.total_price || 0);
+        const paymentMethod = o.payment_method || 'cash';
+        const paymentStatus = o.payment_status || (o.order_status === 'completed' ? 'completed' : 'pending');
+        const status = o.order_status || 'pending';
+        const orderId = o.order_number || o.id?.toString() || `ORD-${Date.now()}`;
+
+        // Parse items if available or reconstruct from menu_name
+        let items = [];
+        if (o.order_items && Array.isArray(o.order_items) && o.order_items.length > 0) {
+          items = o.order_items.map((oi) => ({
+            name: oi.product_name_snapshot || oi.name,
+            price: Number(oi.unit_price || oi.price || 0),
+            quantity: oi.quantity || 1,
+            level: oi.spiciness_level
+          }));
+        } else if (o.items && Array.isArray(o.items)) {
+          items = o.items;
+        } else if (o.menu_name) {
+          items = [
+            {
+              name: o.menu_name,
+              price: totalPrice,
+              quantity: 1,
+              level: o.spiciness_level
+            }
+          ];
+        }
+
+        return {
+          id: o.id,
+          orderId,
+          orderNumber: orderId,
+          branchId: o.branch_id || 'a0000000-0000-0000-0000-000000000001',
+          branchName: o.branch_name || 'Cabang Tunjungan',
+          customerName,
+          customerPhone: o.customer_phone,
+          notes: o.customer_note,
+          totalPrice,
+          paymentMethod,
+          paymentStatus,
+          status,
+          createdAt: o.created_at,
+          items
+        };
+      });
     }
   } catch (err) {
     console.warn('Fallback loading orders from localStorage:', err.message);
