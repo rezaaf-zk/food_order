@@ -23,7 +23,7 @@ serve(async (req: Request) => {
         const { amount, orderId, customerName } = await req.json();
 
         const midtransUrl =
-            "https://app.production.midtrans.com/snap/v1/transactions";
+            "https://app.sandbox.midtrans.com/snap/v1/transactions";
         const encodedAuth = btoa(serverKey + ":");
 
         const payload = {
