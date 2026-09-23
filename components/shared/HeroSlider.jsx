@@ -7,7 +7,7 @@ import 'swiper/css/autoplay';
 const slides = [
   { id: 1, imageUrl: '/slider/menu.jpeg', alt: 'Menu Andalan' },
   { id: 2, imageUrl: '/slider/promo.jpeg', alt: 'Promo Spesial' },
-  { id: 3, imageUrl: '/slider/special.jpeg', alt: 'menu spesial' },
+  { id: 3, imageUrl: '/slider/special menu.jpeg', alt: 'menu spesial' },
 ];
 
 export default function HeroSlider() {
