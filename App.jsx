@@ -12,6 +12,7 @@ import BranchSelectorModal from './components/Branch/BranchSelectorModal';
 import { CartProvider, CartContext } from './context/CartContext';
 import { BranchProvider } from './context/BranchContext';
 import { fetchOrders } from './services/orderService';
+import { supabase } from './supabaseClient'; // <--- Ditambahkan untuk koneksi ke database Supabase
 
 function AppContent() {
   const [view, setView] = useState('menu');
@@ -116,7 +117,7 @@ function AppContent() {
     setView('payment');
   };
 
-  const handleConfirmOrder = (completeOrderData) => {
+  const handleConfirmOrder = async (completeOrderData) => {
     const orderWithUser = {
       ...completeOrderData,
       userId: user?.userId || null,
@@ -124,6 +125,26 @@ function AppContent() {
     };
     setCurrentOrder(orderWithUser);
     localStorage.setItem('activeOrderId', orderWithUser.orderId || orderWithUser.orderNumber);
+
+    try {
+      // Simpan pesanan secara langsung ke database Supabase agar tersinkronisasi lintas perangkat
+      const { error } = await supabase.from('orders').insert([
+        {
+          order_id: orderWithUser.orderId || orderWithUser.orderNumber,
+          buyer_name: orderWithUser.customerName || orderWithUser.buyer_name,
+          menu_name: orderWithUser.items ? orderWithUser.items.map(i => `${i.name} (${i.quantity}x)`).join(', ') : '',
+          total_price: orderWithUser.totalPrice,
+          status: orderWithUser.status || 'waiting',
+          payment_method: orderWithUser.paymentMethod,
+          payment_status: orderWithUser.paymentStatus,
+        }
+      ]);
+      if (error) {
+        console.error('Gagal memasukkan order ke database Supabase:', error);
+      }
+    } catch (e) {
+      console.warn('Kesalahan koneksi saat menyimpan order:', e);
+    }
 
     try {
       const channel = new BroadcastChannel('order_updates');
