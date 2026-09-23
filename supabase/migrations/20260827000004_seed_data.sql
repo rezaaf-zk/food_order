@@ -51,7 +51,7 @@ ON CONFLICT (slug) DO UPDATE SET
 INSERT INTO public.products (id, category_id, sku, name, description, image_url, base_price, has_spiciness_level, is_active)
 VALUES
     -- Makanan
-    ('p0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', 'PRD-MIE-01', 'Mie Setan Iblis', 'Mie pedas gurih dengan bumbu rahasia dan taburan ayam tabur', 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500', 15000, TRUE, TRUE),
+    ('p0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', 'PRD-MIE-01', 'Mie Setan Iblis', 'Mie pedas gurih dengan bumbu dan ayam tabur', 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500', 15000, TRUE, TRUE),
     ('p0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000001', 'PRD-MIE-02', 'Mie Goreng Special', 'Mie goreng spesial dengan telur dadar suwir dan sayuran segar', 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=500', 17000, TRUE, TRUE),
     ('p0000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000001', 'PRD-NASI-01', 'Nasi Goreng Kampung', 'Nasi goreng tradisional dengan rempah wangi dan telur', 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500', 13000, TRUE, TRUE),
     ('p0000000-0000-0000-0000-000000000004', 'c0000000-0000-0000-0000-000000000001', 'PRD-NASI-02', 'Nasi Goreng Khas Jawa', 'Nasi goreng manis gurih khas Jawa dengan suwiran ayam', 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=500', 18000, TRUE, TRUE),

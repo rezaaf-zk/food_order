@@ -13,7 +13,7 @@ export default function Checkout({ onBack, onProceedToPayment }) {
 
   const handleProceed = () => {
     if (!customerName.trim()) {
-      alert('Silakan masukkan nama pemesan terlebih dahulu!');
+      alert('Silakan masukkan nama pemesan!');
       return;
     }
 
@@ -174,7 +174,7 @@ export default function Checkout({ onBack, onProceedToPayment }) {
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Masukkan nama Anda..."
+                placeholder="Masukkan nama Anda"
                 className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
               />
               <User className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
@@ -183,7 +183,7 @@ export default function Checkout({ onBack, onProceedToPayment }) {
 
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block mb-1">
-              Nomor WhatsApp (Opsional)
+              Nomor HP (Opsional)
             </label>
             <div className="relative">
               <input
@@ -205,7 +205,7 @@ export default function Checkout({ onBack, onProceedToPayment }) {
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Tambahkan catatan khusus untuk kasir / dapur..."
+                placeholder="Tambahkan catatan"
                 rows={2}
                 className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 resize-none"
               />

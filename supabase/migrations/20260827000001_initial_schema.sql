@@ -1,8 +1,3 @@
--- ============================================================================
--- MIGRATION 1: Initial Schema (Tables, Constraints, Triggers & Indexes)
--- Multi-Branch Food Ordering System with BOM Inventory & Sales Monitoring
--- Reference: ANTIGRAVITY_FOOD_ORDER_MASTER_SPEC.md
--- ============================================================================
 
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

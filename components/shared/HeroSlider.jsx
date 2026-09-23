@@ -1,15 +1,13 @@
 import React from 'react';
-// Import komponen dan style dari Swiper
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/autoplay';
 
-// Anda bisa mengganti data ini dengan gambar dari API atau state management
 const slides = [
-  { id: 1, imageUrl: '/tes_slider.png', alt: 'Menu Andalan' },
-  { id: 2, imageUrl: '/tes_slider.png', alt: 'Promo Spesial' },
-  { id: 3, imageUrl: '/tes_slider.png', alt: 'Diskon Akhir Pekan' },
+  { id: 1, imageUrl: '/slider/menu.jpeg', alt: 'Menu Andalan' },
+  { id: 2, imageUrl: '/slider/promo.jpeg', alt: 'Promo Spesial' },
+  { id: 3, imageUrl: '/slider/special.jpeg', alt: 'menu spesial' },
 ];
 
 export default function HeroSlider() {
