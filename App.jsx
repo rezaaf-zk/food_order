@@ -26,7 +26,7 @@ function AppContent() {
 
   const { cart, clearCart } = React.useContext(CartContext);
 
-  // Load orders on initialization
+  // Load orders on initialization and periodic 5s polling for cross-device sync
   useEffect(() => {
     async function loadOrders() {
       try {
@@ -52,6 +52,10 @@ function AppContent() {
     }
 
     loadOrders();
+
+    // Auto-poll orders every 5 seconds to sync across different devices/laptops
+    const intervalId = setInterval(loadOrders, 5000);
+    return () => clearInterval(intervalId);
   }, []);
 
   // Handle Midtrans redirect / return URL parameters (if 3DS or external redirect occurs)

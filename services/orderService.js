@@ -21,10 +21,12 @@ export async function createOrder(orderPayload) {
   const idempotencyKey = orderPayload.idempotencyKey || `idemp_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
   const orderNumber = orderPayload.orderNumber || `ORD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+  const isUuid = (val) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
   const pOrder = {
     order_number: orderNumber,
-    user_id: userId,
-    branch_id: branchId,
+    user_id: isUuid(userId) ? userId : null,
+    branch_id: isUuid(branchId) ? branchId : 'a0000000-0000-0000-0000-000000000001',
     subtotal: totalPrice,
     discount: 0,
     tax: 0,
@@ -44,7 +46,7 @@ export async function createOrder(orderPayload) {
   };
 
   const pItems = items.map((item) => ({
-    product_id: item.id,
+    product_id: isUuid(item.id) ? item.id : null,
     product_name_snapshot: item.name,
     unit_price: item.price,
     quantity: item.quantity,
@@ -58,7 +60,7 @@ export async function createOrder(orderPayload) {
     const { data, error } = await supabase.rpc('create_order_transaction', {
       p_order: pOrder,
       p_items: pItems,
-      p_created_by: userId
+      p_created_by: isUuid(userId) ? userId : null
     });
 
     if (error) {
@@ -66,29 +68,91 @@ export async function createOrder(orderPayload) {
       throw error;
     }
 
-    if (data && data.order) {
+    if (data && (data.order || data.order_id)) {
+      const createdOrd = data.order || {};
       return {
         success: true,
-        orderId: data.order.id,
-        orderNumber: data.order.order_number,
+        orderId: createdOrd.id || data.order_id,
+        orderNumber: createdOrd.order_number || data.order_number || orderNumber,
         order: {
-          ...data.order,
-          orderId: data.order.id,
-          orderNumber: data.order.order_number,
-          totalPrice: Number(data.order.total),
+          ...createdOrd,
+          orderId: createdOrd.id || data.order_id,
+          orderNumber: createdOrd.order_number || data.order_number || orderNumber,
+          totalPrice: Number(createdOrd.total || totalPrice),
           items,
           customerName,
-          status: data.order.order_status,
-          paymentStatus: data.order.payment_status,
-          createdAt: data.order.created_at
+          status: createdOrd.order_status || orderStatus,
+          paymentStatus: createdOrd.payment_status || paymentStatus,
+          createdAt: createdOrd.created_at || new Date().toISOString()
         }
       };
     }
   } catch (err) {
-    console.warn('Falling back to local order persistence:', err.message);
+    console.warn('RPC failed, trying direct Supabase table insert fallback:', err.message);
   }
 
-  // Fallback local persistence
+  // 2. Direct Supabase insert fallback if RPC failed
+  try {
+    const { data: directOrder, error: directErr } = await supabase
+      .from('orders')
+      .insert({
+        order_number: orderNumber,
+        branch_id: isUuid(branchId) ? branchId : 'a0000000-0000-0000-0000-000000000001',
+        subtotal: totalPrice,
+        discount: 0,
+        tax: 0,
+        delivery_fee: 0,
+        total: totalPrice,
+        payment_status: paymentStatus,
+        order_status: orderStatus,
+        order_type: orderType,
+        payment_method: paymentMethod,
+        customer_name: customerName,
+        customer_phone: customerPhone || null,
+        customer_note: customerNote || null,
+        idempotency_key: idempotencyKey
+      })
+      .select()
+      .single();
+
+    if (!directErr && directOrder) {
+      const itemsToInsert = items.map((item) => ({
+        order_id: directOrder.id,
+        product_id: isUuid(item.id) ? item.id : null,
+        product_name_snapshot: item.name,
+        unit_price: item.price,
+        quantity: item.quantity,
+        subtotal: item.price * item.quantity,
+        spiciness_level: item.level || null,
+        notes: item.notes || null
+      }));
+
+      await supabase.from('order_items').insert(itemsToInsert);
+
+      return {
+        success: true,
+        orderId: directOrder.id,
+        orderNumber: directOrder.order_number,
+        order: {
+          ...directOrder,
+          orderId: directOrder.id,
+          orderNumber: directOrder.order_number,
+          totalPrice: Number(directOrder.total),
+          items,
+          customerName,
+          status: directOrder.order_status,
+          paymentStatus: directOrder.payment_status,
+          createdAt: directOrder.created_at
+        }
+      };
+    } else if (directErr) {
+      console.warn('Direct Supabase insert failed:', directErr.message);
+    }
+  } catch (err) {
+    console.warn('Direct insert fallback failed:', err.message);
+  }
+
+  // 3. Last-resort fallback: local persistence
   const fallbackOrder = {
     id: `ord_${Date.now()}`,
     orderId: orderNumber,
