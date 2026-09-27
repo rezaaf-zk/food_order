@@ -35,7 +35,7 @@ export const menuData = {
     },
     {
       id: 5,
-      name: 'Nasi Goreng khas jawa',
+      name: 'Nasi Goreng jawa',
       price: 30000,
       image: '/menu/nasgor jaw.jpeg',
       hasLevel: true,

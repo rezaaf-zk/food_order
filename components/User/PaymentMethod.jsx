@@ -12,27 +12,24 @@ export default function PaymentMethod({ orderData, onBack, onConfirmOrder }) {
   const paymentMethods = [
     {
       id: 'midtrans',
-      name: 'Pembayaran Online (Midtrans Snap)',
+      name: 'Transfer payment',
       description: 'QRIS (GoPay, OVO, Dana, ShopeePay), VA BCA/Mandiri/BNI/BRI, & Kartu.',
       icon: <Zap className="w-5 h-5" />,
       style: 'fuchsia',
-      badge: 'Otomatis'
     },
     {
       id: 'qris',
-      name: 'QRIS Statis Gerai',
+      name: 'QRIS',
       description: 'Scan barcode QRIS gerai & konfirmasi ke kasir.',
       icon: <QrCode className="w-5 h-5" />,
-      style: 'green',
-      badge: 'Manual'
+      style: 'green'
     },
     {
       id: 'cash',
-      name: 'Bayar Tunai di Kasir',
-      description: 'Lakukan pembayaran langsung tunai saat ambil pesanan.',
+      name: 'Bayar Cash di Kasir',
+      description: 'Lakukan pembayaran langsung di kasir dengan menunjukkan nama pemesan, Usahakan uang pas.',
       icon: <Banknote className="w-5 h-5" />,
       style: 'amber',
-      badge: 'Tunai'
     }
   ];
 
